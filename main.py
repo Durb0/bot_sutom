@@ -19,18 +19,19 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 
-filename = "liste_francais.txt"
+filename = os.path.join(os.path.dirname(os.path.abspath(__file__)),"liste_francais.txt")
 url= "https://sutom.nocle.fr/#"
+letter_file = os.path.join(os.path.dirname(os.path.abspath(__file__)),"letter.json")
+word_file = os.path.join(os.path.dirname(os.path.abspath(__file__)),"word.json")
 
 def init_json():
-    letter_file = Path("letter.json")
-    word_file = Path("word.json")
-    if letter_file.is_file() & word_file.is_file():
+    
+    if os.path.exists(letter_file) & os.path.exists(word_file):
         os.remove(letter_file)
         os.remove(word_file)
 
-    letter_json = open("letter.json","w")
-    word_json = open("word.json", "w")
+    letter_json = open(letter_file,"w")
+    word_json = open(word_file, "w")
 
     listWord=[]
     listLetter=[]
@@ -79,7 +80,7 @@ def init_json():
     print("CHECK : CREATION DE LA LISTE DES LETTRES")
 
     #INITIALISATION DU TABLEAU DE MOTS ET MISE A JOUR DES LETTRES
-    with open(filename) as fh:
+    with open(filename,'r') as fh:
         countLetter = 0
         for line in fh:
             dict2 = {}
@@ -127,7 +128,7 @@ def define_secret_word(data):
 
 def update(data):
 
-    with open('word.json','w') as data_file:
+    with open(word_file,'w') as data_file:
        data = json.dump(data, data_file)
 
 def getWordSize(word):
@@ -349,8 +350,8 @@ def main():
         init_json()
 
         #open jsons for read    
-        letter_json = open("letter.json","r")
-        word_json = open("word.json", "r")
+        letter_json = open(letter_file,"r")
+        word_json = open(word_file, "r")
 
         dataWord = json.load(word_json)
         dataLetter = json.load(letter_json)
@@ -368,3 +369,5 @@ def main():
     
 if __name__ == "__main__":
     main()
+
+input('Press ENTER to exit')

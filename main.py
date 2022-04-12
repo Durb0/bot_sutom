@@ -1,7 +1,6 @@
 from ast import Break, Delete
 from distutils import command
 from distutils.log import ERROR
-import json
 from linecache import getline
 from ntpath import join
 from operator import delitem, truth
@@ -11,363 +10,323 @@ import random
 from re import RegexFlag
 from textwrap import indent
 import time
-import unicodedata
+from typing import KeysView
 from xml.etree.ElementTree import tostring
 import os
+from pip import main
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
+import letter
+import word
 
 filename = os.path.join(os.path.dirname(os.path.abspath(__file__)),"liste_francais.txt")
 url= "https://sutom.nocle.fr/#"
 letter_file = os.path.join(os.path.dirname(os.path.abspath(__file__)),"letter.json")
 word_file = os.path.join(os.path.dirname(os.path.abspath(__file__)),"word.json")
-
-def init_json():
-    
-    if os.path.exists(letter_file) & os.path.exists(word_file):
-        os.remove(letter_file)
-        os.remove(word_file)
-
-    letter_json = open(letter_file,"w")
-    word_json = open(word_file, "w")
-
-    listWord=[]
-    listLetter=[]
-
-    fieldsletter=['caractere','count','percentage','row','column']
-    fieldsWord=['word','percentage','size']
-    #INITIALISATION DU TABLEAU DE LETTRE
-    ch = 'A'
-    for i in range(26):
-        dict2={}
-        dict2[fieldsletter[0]] = ch
-        dict2[fieldsletter[1]] = 0
-        dict2[fieldsletter[2]] = 0
-        listLetter.append(dict2)
-        
-        #rown
-        if((ch=='A')|(ch=='Z')|(ch=='E')|(ch=='R')|(ch=='T')|(ch=='Y')|(ch=='U')|(ch=='I')|(ch=='O')|(ch=='P')):
-            dict2[fieldsletter[3]]= 1
-        elif((ch=='Q')|(ch=='S')|(ch=='D')|(ch=='F')|(ch=='G')|(ch=='H')|(ch=='J')|(ch=='K')|(ch=='L')|(ch=='M')):
-            dict2[fieldsletter[3]]= 2
-        else:
-            dict2[fieldsletter[3]]= 3
-        #column
-        if((ch=='A')|(ch=='Q')):
-            dict2[fieldsletter[4]]= 1
-        if((ch=='Z')|(ch=='S')|(ch=='W')):
-            dict2[fieldsletter[4]]= 2
-        if((ch=='E')|(ch=='D')|(ch=='X')):
-            dict2[fieldsletter[4]]= 3
-        if((ch=='R')|(ch=='F')|(ch=='C')):
-            dict2[fieldsletter[4]]= 4
-        if((ch=='T')|(ch=='G')|(ch=='V')):
-            dict2[fieldsletter[4]]= 5
-        if((ch=='Y')|(ch=='H')|(ch=='B')):
-            dict2[fieldsletter[4]]= 6
-        if((ch=='U')|(ch=='J')|(ch=='N')):
-            dict2[fieldsletter[4]]= 7
-        if((ch=='I')|(ch=='K')):
-            dict2[fieldsletter[4]]= 8
-        if((ch=='O')|(ch=='L')):
-            dict2[fieldsletter[4]]= 9
-        if((ch=='P')|(ch=='M')):
-            dict2[fieldsletter[4]]= 10
-        ch = chr(ord(ch)+1)
-
-    print("CHECK : CREATION DE LA LISTE DES LETTRES")
-
-    #INITIALISATION DU TABLEAU DE MOTS ET MISE A JOUR DES LETTRES
-    with open(filename,'r') as fh:
-        countLetter = 0
-        for line in fh:
-            dict2 = {}
-            wordnormal = line.replace("\n","") #unicodedata.normalize("NFD",''.join(line.rsplit("\n")))
-            dict2[fieldsWord[0]]= wordnormal
-            dict2[fieldsWord[1]]=0
-            dict2[fieldsWord[2]] = len(line)-1
-            listWord.append(dict2)
-    
+letters=[]
+words=[]
+word_to_find = None
 
 
-    # COMPTE DU NOMBRE D'APPARITION DE CHAQUE LETTRE
 
-            for letter in line:
-                countLetter+=1
-                for caractere in listLetter:
-                    if(caractere["caractere"] == letter):
-                        caractere["count"] +=1
-    # POURCENTAGE DES LETTRES
-        for letter in listLetter:
-            letter["percentage"] = letter["count"]/countLetter
-        
+#fonction qui ouvre filename et crée un Word pour chaque ligne
+def get_words(filename,size_file,firstLetter_file): 
+          words = []
+          with open(filename) as f:
+                    for line in f:
+                                    #si la premiere lettre de la ligne est la meme que firstLetter_file et la taille de la ligne est egale à size_file
+                              if line[0] == firstLetter_file and len(line)-1 == size_file:
+                                        words.append(word.Word(line.strip()))
+          return words
 
-        for word in listWord:
-            add= 0
-            for letter in word["word"]:
-                for c in listLetter:
-                    if letter == c["caractere"]:
-                        add+=  c["percentage"]
-            word["percentage"] = add/word["size"]
 
-    print("CHECK : CREATION DU DICTIONNAIRE DE MOTS")
+#retourne une ligne aleatoire du fichier filename
+def get_random_line(filename):
+          with open(filename) as f:
+                          lines = f.readlines()
+                          return random.choice(lines)
 
-    json.dump(listWord,word_json)
-    json.dump(listLetter,letter_json)
-    word_json.close()
-    letter_json.close()
 
-# MAINTENANT QUE LA BDD EST INITIALISEE ON VA POUVOIR LA RECUPERER SOUS FORME DE DATA
-def define_secret_word(data):
-    alea = random.randrange(len(data))
-    word = data[alea]
-    print(word)
-    return word
+#function who return longest word
+def longest_word(words:list):
+          longest = words[0]
+          for word in words:
+                    if word.getSize() > longest.getSize():
+                              longest = word
+          return longest
 
-def update(data):
 
-    with open(word_file,'w') as data_file:
-       data = json.dump(data, data_file)
+#fonction qui cherche un mot aléatoire dans la liste words
+def random_word(words:list):
+          return random.choice(words)
 
-def getWordSize(word):
-    return word["size"]
 
-def getLetterByIndex(word,index):
-    return word["word"][index]
+#fonction qui supprime un mot de la liste words
+def delete_word(words:list,word):
+      if word in words:
+            if(len(words)< 100):
+                  word.print_word()
+            del words[words.index(word)]
 
-def filterBySize(data,size):
-    index =0
-    for word in range(len(data)):
-        if(getWordSize(data[index]) != size):
-            del data[index]
-        else:
-            index+=1
-    update(data)
-    
-def filterByLetterIndex(data,letter,index):
-    i=0
-    for word in range(len(data)):
-        if(getLetterByIndex(data[i],index) != letter):
-            del data[i]
-        else:
-            i+=1
-    update(data)
+#function who delete all word with the letter l
+def deleteAllWordsWithLetter(l:str,words:list):
+      for word in words:
+                    #if word.checkLetter(l) > -1:
+            for letter in word.word:
+                  if letter == l:
+                        delete_word(words,word)
 
-def filterByLetterIndexRemove(data,letter,index):
-    i=0
-    for word in range(len(data)):
-        if(getLetterByIndex(data[i],index) == letter):
-            del data[i]
-        else:
-            i+=1
-    update(data)
+#function who delete all words without letter l
+def deleteAllWordsWithoutLetter(l,words:list):
+          for word in words:
+                    if word.checkLetter(l) == -1:
+                             delete_word(words,word)
 
-def getBestWord(data):
-    bestword = data[0]
-    for word in data:
-        if(word["percentage"] > bestword["percentage"]):
-            bestword = word
-    return bestword
+def deleteAllWordsWithLetterPosition(l:str,words:list,pos:int):
+          for word in words:
+                    if word.word[pos] == l:
+                              delete_word(words,word)
 
-def findLetter(word,letter):
-    for l in word["word"]:
-        if(l==letter):
-            return True
-    return False
+#fonction qui supprime tout les mots qui n'ont pas la meme lettre à la position pos
+def deleteAllWordsWithoutLetterPosition(letter:str,words:list,pos:int):
+          for word in words:
+                    if word.word[pos] != letter:
+                              delete_word(words,word)
 
-""" def getMask(words,wordd):
-    masque=[]
-    wordtempo=words["word"]
-    for i in range(wordd["size"]):
-        if(getLetterByIndex(words,i) == getLetterByIndex(wordd,i)):
-            masque.append("V")
-        else:
-            found=False
-            for j in range(len(wordtempo)):
-                if(wordtempo[j] == getLetterByIndex(wordd,i)):
-                    k = findLetter(words,j,wordtempo[j])
-                    if(getLetterByIndex(words,k) != getLetterByIndex(wordd,k)):
-                        wordtempo = wordtempo.replace(wordtempo[j],'',1)
-                        masque.append("O")
-                        found=True
-                        break
-            if not(found):
-                masque.append("X")
-    print(wordtempo)
-    return masque """
+#function who delete all words with not the size s
+def deleteAllWordsWithSize(s:int,words:list):
+          for word in words:
+                    if word.getSize() != s:
+                              delete_word(words,word)
+
+#function who return  the word with the better percent
+def best_word(words:list):
+          if len(words) == 0:
+                    print("Aucun mot trouvé")
+                    return None
+          best = words[0]
+          for word in words:
+                    if word.getPercent() > best.getPercent():
+                              best = word
+          return best
+
+################
+# ABOUTE LETTERS #
+################
+
+#function who create a list of each letter of the alphabet
+# and return it
+def create_letters():
+          letters = []
+          for i in range(26):
+                    #la lettre doit être en majuscule
+                    letters.append(letter.Letter(chr(i+65)))
+          return letters 
+
+#fonction qui applique add_letter à chaque mot
+def add_letters(words:list,letters:list):
+          for word in words:
+                    for i in range(word.getSize()):
+                              findLetter(letters,word.word[i]).add(i)
+
+#fonction qui affiche toutes les lettres en format json
+def print_letters(letters:list):
+          for letter in letters:
+                    letter.print_letter()
+
+
+def findLetter(letters:list,c:str):
+          for letter in letters:
+                    if letter.isLetter(c):
+                              return letter
+          return None
+
+#fonction qui cacule le pourcentage de chaque mot
+def calculate_percents(words:list,letters:list):
+          for word in words:
+                    word.calculatePercent(letters)
+
+def initiatilisationTabs(words,letters,size_file,firstLetter_file):
+          words = get_words(filename,size_file,firstLetter_file)
+          add_letters(words,letters)
+          for letter in letters:
+                #si la lettre est une voyelle
+                  if letter.isVowel():
+                        #on applique la fonction addPositionsPercent
+                        letter.addPositionsPercent()
+          calculate_percents(words,letters)
+          return words
+
+
+#fonction qui genere le masque de la recherche
+#retourne un tableau
+#"V" si la lettre est dans la meme position
+#"O" si la lettre est dans une autre position
+#"X" si la lettre n'est pas dans le mot
+def getMask(word,word_to_find):
+            mask = ["" for i in range(word.getSize())]
+            for i in range(word.getSize()):
+                  if word.getLetter(i) == word_to_find.getLetter(i):
+                        mask[i] = "V"
+            #si la lettre est dans le mot et qu'elle est dans une autre position et que le mask est vide
+            for i in range(word.getSize()):
+                  #si le masque a i est vide et que la lettre est dans le mot
+                  if mask[i] == "":
+                        for j in range(word.getSize()):
+                              if word.getLetter(i) == word_to_find.getLetter(j) and (mask[j] != "V"):
+                                    mask[i] = "O"
+                                    break
+                        if mask[i] == "":
+                              mask[i] = "X"
+            return mask
 
 def getMaskWeb(browser,size,line):
-    mask=[]
-    for letter in range(size):
-        anal = browser.find_element_by_xpath('//*[@id="grille"]/table/tr['+ str(line) +']/td['+str(letter+1) +']')
-        print(anal.text)
-        classes = anal.get_attribute("class").split(" ")
-        if classes[0] == 'bien-place':
-            mask.append('V')
-        elif classes[0] == 'mal-place':
-            mask.append('O')
-        elif classes[0] == 'non-trouve':
-            mask.append('X')
-    return mask
+      mask=[]
+      for letter in range(size):
+            anal = browser.find_element_by_xpath('//*[@id="grille"]/table/tr['+ str(line) +']/td['+str(letter+1) +']')
+            classes = anal.get_attribute("class").split(" ")
+            if classes[0] == 'bien-place':
+                  mask.append('V')
+            elif classes[0] == 'mal-place':
+                  mask.append('O')
+            elif classes[0] == 'non-trouve':
+                  mask.append('X')
+      return mask
+
+def checkMask(mask):
+          for i in mask:
+                    if i != "V":
+                              return False
+          return True
+
+def filter_words(words,mask,best):
+      print(best.word)
+      for i in range(best.getSize()):
+            letter = best.getLetter(i)
+            if mask[i] == "V":
+                              #supprime tout les mots qui n'ont pas la lettre
+                  deleteAllWordsWithoutLetterPosition(letter,words,i)
+            elif mask[i]  == "O":
+                              #supprime tout les mots qui on la lettre dans la meme position
+                  deleteAllWordsWithLetterPosition(letter,words,i)
+                  deleteAllWordsWithoutLetter(letter,words)
+            elif mask[i] == "X":
+                  #si O ou V de la lettre n'est pas dans le masque
+                  #supprime tout les mots qui ont la lettre
+                  is_other_position = False
+                  for j in range(best.getSize()):
+                        if (mask[j] == "V" or mask[j]=="O") and letter == best.getLetter(j):                         
+                              deleteAllWordsWithoutLetterPosition(letter,words,j)
+                              is_other_position = True
+                              break
+                  if  not is_other_position:
+                        print("suppression de la lettre " + letter)
+                        deleteAllWordsWithLetter(letter,words)
+
+      #si le best existe toujours on le supprime
+      if best in words:
+            delete_word(words,best)
+      
+def ecritMot(browser,word,letters):
+      for i in word.word:
+            #recupère la lettre
+            letter = findLetter(letters,i)
+            browser.find_element_by_xpath('//*[@id="input-area"]/div['+ str(letter.row) +']/div['+ str(letter.column)+']').click()
+      browser.find_element_by_xpath('//*[@id="input-area"]/div[3]/div[9]').click()
+      time.sleep(3)
+
+def find_word(words,word_to_find):
+      for word in words:
+            if word.word == word_to_find.word:
+                  return word
+      return None
 
 
-def deleteWord(data,words):
-    index=0
-    for word in data:
-        if(data[index]["word"]==words["word"]):
-            del data[index]
-        else:
-            index+=1
-    update(data)
-
-def filterByLetter(data,letter):
-    index=0
-    for word in data:
-        if ((findLetter(data[index],letter))):
-            del data[index]
-        else:
-            index+=1
-
-def filterByLetterExist(data,letter):
-    index=0
-    for word in data:
-        if ((findLetter(data[index],letter))):
-            del data[index]
-        else:
-            index+=1
-    
-
-
-
-
-def launch_game(dataL,dataW):
-
-    #OUVRE LE NAVIGATEUR SUR LA PAGE DEMANDEE
-    browser = webdriver.Chrome()
-    browser.get(url)    
-
-
-    #SUPPRIME LE DIALOG D'ENTREE
-    browser.find_element_by_xpath('//*[@id="panel-fenetre-bouton-fermeture"]').click()
-
-    #init des variables
-    nbTry = 0
-    find = False
-    maskV=[]
-
-    #definition du mot secret
-    #secret = define_secret_word(dataW)
-    #size= getWordSize(secret)
-    #firstLetter = getLetterByIndex(secret,0)
-    #print(firstLetter)
-    ####PASSAGE EN VERSION WEB
-
-    time.sleep(2)
-    firstLetter = browser.find_element_by_xpath('//*[@id="grille"]/table/tr[1]/td[1]').text
-    secret = browser.find_element_by_xpath('//*[@id="grille"]/table/tr[1]').text
-    secret = secret.replace(" ","")
-    print(secret)
-    size = len(secret)
-    print(size)
-
-    #MASQUE DE VICTOIRE
-    for i in range(size):
-        maskV.append("V")
-    #premier filtrage
-    print(len(dataW))
-    filterBySize(dataW,size)
-    print(len(dataW))
-    filterByLetterIndex(dataW,firstLetter,0)
-    print(len(dataW))
-    
-
-    while not(find):
-        nbTry+=1
-        
-        wordCurrent = getBestWord(dataW)
-        print(wordCurrent["word"])
-        print(wordCurrent["percentage"])
-        for letter in wordCurrent["word"]:
-            for car in dataL:
-                if car["caractere"] == letter:
-                    browser.find_element_by_xpath('//*[@id="input-area"]/div['+ str(car["row"]) +']/div['+ str(car["column"]) +']').click()
-        browser.find_element_by_xpath('//*[@id="input-area"]/div[3]/div[9]').click()
-        time.sleep(3)
-
-        #ANALYSE AND FILTER
-        secret = browser.find_element_by_xpath('//*[@id="grille"]/table/tr['+ str(nbTry+1)+']').text
-        secret = secret.replace(" ","")
-        print(secret)
-            
-                
-        mask = getMaskWeb(browser,size,nbTry)
-        print(mask)
-        if(maskV==mask):
-            
-            find = True
-            print(wordCurrent)
-        else: 
-            print(len(dataW))
-            #MENAGE
-            for value in range(len(mask)):
-                l = getLetterByIndex(wordCurrent,value)
-                if mask[value] == "V":
-                    filterByLetterIndex(dataW,l,value)
-                    print(len(dataW))
-                if mask[value] == "O":
-                   #A MODIFIER
-                    #filterByLetterExist(dataW,l)
-                    filterByLetterIndexRemove(dataW,l,value)
-                if mask[value] == "X":
-                    filterByLetterIndexRemove(dataW,l,value)
-                    remove= True
-                    for letter in range(wordCurrent["size"]):
-                        if ((l == getLetterByIndex(wordCurrent,letter)) & (mask[letter]!="X")):
-                            remove = False        
-                    if remove:
-                        print(l)
-                        filterByLetter(dataW,l)
-                    
-            deleteWord(dataW,wordCurrent)
-
-    browser.find_element_by_xpath('//*[@id="fin-de-partie-panel-resume-bouton"]').click()
-
-                            
-
-    print(nbTry)
-    return nbTry
-
+def game(browser):
+      letters = create_letters()
+      words=[]
+      #line = get_random_line(filename) #ligne à modifier quand sutom
+      #print("Mot à trouver : ",line)
+      #size_file = len(line)-1
+      #firstLetter_file = line[0] #jusque là
+      #recupere la taille du mot à trouver via le browser
+      firstLetter_file = WebDriverWait( browser,10).until(EC.presence_of_element_located((By.XPATH,'//*[@id="grille"]/table/tr[1]/td[1]'))).text
+      print("Premiere lettre du mot : ",firstLetter_file)
+      word_to_find = WebDriverWait(browser ,10).until(EC.presence_of_element_located((By.XPATH,'//*[@id="grille"]/table/tr[1]'))).text
+      word_to_find = word_to_find.replace(" ","")
+      size_file = len(word_to_find)
+      print("taille du mot : ", size_file)
+      words = initiatilisationTabs(words,letters,size_file,firstLetter_file)
+      #tant que le mot n'est pas trouvé, on continue
+      found = False
+      countTurn = 0
+      debug = word.Word("SENATRICE")
+      while not(found):
+            print("Nombre de mot restant",len(words))
+            if len(words) == 0:
+                  print("[ERREUR] Il n'y a plus de mot")
+                  break
+            #si le mot senatrice n'est plus dans la liste
+            #if not(find_word(words,debug)):
+                  #print("[ERREUR] Le mot n'est plus dans la liste")
+                  #break
+            countTurn += 1
+            print("Tour n°",countTurn)
+            best_word_found = best_word(words)
+            #best_word_found = random_word(words)
+            print("Meilleur mot : ",best_word_found.word)
+            #ecrit le mot dans le browser
+            ecritMot(browser,best_word_found,letters)
+            mask = getMaskWeb(browser,size_file,countTurn)
+            print("Masque : ",mask)
+            if checkMask(mask) == True:
+                  print("Mot trouvé !")
+                  found = True
+                  return countTurn
+            else:
+                  #filtre words
+                  filter_words(words,mask,best_word_found)
+                  #supprime le best word
+                  #delete_word(words,best_word_found)
+      print("Nombre de tour : ",countTurn)
+      browser.close()
 
 def main():
-    
-    c=0
-    nbTry=1
-    for i in range(nbTry):
-        
-    
-        init_json()
+      #ouvre le navigateur
+      browser = webdriver.Chrome()
+      browser.get(url)
+      browser.find_element(By.XPATH,'//*[@id="panel-fenetre-bouton-fermeture"]').click()
 
-        #open jsons for read    
-        letter_json = open(letter_file,"r")
-        word_json = open(word_file, "r")
+      count = 0
+      min = 100
+      max = 0
+      countWin = 0
+      countLose =   0
+      counts = [0 * i for i in range(1,21)]
+      for i in range(1):
+            print("Tour n°",i+1)
+            res = game(browser)
+            count += res
+            counts[res] += 1
+            if res <= 6:
+                  countWin += 1
+            else:
+                  countLose += 1
+            if res < min:
+                        min = res
+            if res > max:
+                  max = res
+      print("Moyenne de tour : ",count/100)
+      print("Minimum de tour : ",min)
+      print("Maximum de tour : ",max)
+      #print("Nombre de victoire : ",countWin)
+      #print("Nombre de défaite : ",countLose)
+      #for i in range(len(counts)):
+            #if counts[i] != 0:
+                  #print("Nombre de tour de ",i," : ",counts[i])
 
-        dataWord = json.load(word_json)
-        dataLetter = json.load(letter_json)
+if __name__=="__main__":
+          main()
 
-        c += launch_game(dataLetter,dataWord)
-
-
-
-        #close jsons
-        word_json.close()
-        letter_json.close()
-    print(c/nbTry)
-    return c/nbTry
-
-    
-if __name__ == "__main__":
-    main()
-
-input('Press ENTER to exit')

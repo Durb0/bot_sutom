@@ -65,35 +65,63 @@ def random_word(words:list):
 
 #fonction qui supprime un mot de la liste words
 def delete_word(words:list,word):
+      ###
+      # if word in words:
+       #     if(len(words)< 100):
+        #          word.print_word()
+         #   del words[words.index(word)]
       if word in words:
-            if(len(words)< 100):
-                  word.print_word()
-            del words[words.index(word)]
+            words.remove(word)
 
 #function who delete all word with the letter l
 def deleteAllWordsWithLetter(l:str,words:list):
+      deleteList=[]
+      processNo = 0
       for word in words:
                     #if word.checkLetter(l) > -1:
             for letter in word.word:
                   if letter == l:
-                        delete_word(words,word)
+                        deleteList.insert(0,processNo)
+                        break
+            processNo+=1
+      if len(deleteList) > 0:
+            for i in deleteList:
+                  del words[i]
 
 #function who delete all words without letter l
 def deleteAllWordsWithoutLetter(l,words:list):
-          for word in words:
-                    if word.checkLetter(l) == -1:
-                             delete_word(words,word)
+      deleteList=[]
+      processNo = 0
+      for word in words:
+            if word.checkLetter(l) == -1:
+                  deleteList.insert(0,processNo)
+            processNo+=1
+      if len(deleteList) > 0:
+            for i in deleteList:
+                  del words[i]
 
-def deleteAllWordsWithLetterPosition(l:str,words:list,pos:int):
-          for word in words:
-                    if word.word[pos] == l:
-                              delete_word(words,word)
+def deleteAllWordsWithLetterPosition(letter:str,words:list,pos:int):
+      deleteList=[]
+      processNo = 0
+      for word in words:
+            if word.getLetter(pos) == letter:
+                  deleteList.insert(0,processNo)
+            processNo += 1
+      if len(deleteList) > 0:
+            for i in deleteList:
+                  del words[i]
 
 #fonction qui supprime tout les mots qui n'ont pas la meme lettre à la position pos
 def deleteAllWordsWithoutLetterPosition(letter:str,words:list,pos:int):
-          for word in words:
-                    if word.word[pos] != letter:
-                              delete_word(words,word)
+      deleteList=[]
+      processNo = 0
+      for word in words:
+            if word.word[pos] != letter:
+                  deleteList.insert(0,processNo)
+            processNo += 1
+      if len(deleteList) > 0:
+            for i in deleteList:
+                  del words[i]
 
 #function who delete all words with not the size s
 def deleteAllWordsWithSize(s:int,words:list):
@@ -239,7 +267,8 @@ def ecritMot(browser,word,letters):
 
 def find_word(words,word_to_find):
       for word in words:
-            if word.word == word_to_find.word:
+            if word.word == word_to_find:
+                  print("mot trouvé")
                   return word
       return None
 
@@ -247,22 +276,33 @@ def find_word(words,word_to_find):
 def game(browser):
       letters = create_letters()
       words=[]
-      #line = get_random_line(filename) #ligne à modifier quand sutom
+
+      ######
+      # POUR TEST
+      ######
+
+      #line = get_random_line(filename) 
+      #retire le dernier caractère de line
+      #line = line[:-1]
       #print("Mot à trouver : ",line)
-      #size_file = len(line)-1
-      #firstLetter_file = line[0] #jusque là
-      #recupere la taille du mot à trouver via le browser
+      #size_file = len(line)
+      #firstLetter_file = line[0]
+
+      ######
+      # POUR SUTOM
+      ######
       firstLetter_file = WebDriverWait( browser,10).until(EC.presence_of_element_located((By.XPATH,'//*[@id="grille"]/table/tr[1]/td[1]'))).text
       print("Premiere lettre du mot : ",firstLetter_file)
       word_to_find = WebDriverWait(browser ,10).until(EC.presence_of_element_located((By.XPATH,'//*[@id="grille"]/table/tr[1]'))).text
       word_to_find = word_to_find.replace(" ","")
       size_file = len(word_to_find)
       print("taille du mot : ", size_file)
+
       words = initiatilisationTabs(words,letters,size_file,firstLetter_file)
+      #word_to_find = find_word(words,line)
       #tant que le mot n'est pas trouvé, on continue
       found = False
       countTurn = 0
-      debug = word.Word("SENATRICE")
       while not(found):
             print("Nombre de mot restant",len(words))
             if len(words) == 0:
@@ -279,6 +319,7 @@ def game(browser):
             print("Meilleur mot : ",best_word_found.word)
             #ecrit le mot dans le browser
             ecritMot(browser,best_word_found,letters)
+            #mask = getMask(best_word_found,word_to_find)
             mask = getMaskWeb(browser,size_file,countTurn)
             print("Masque : ",mask)
             if checkMask(mask) == True:
@@ -298,14 +339,14 @@ def main():
       browser = webdriver.Chrome()
       browser.get(url)
       browser.find_element(By.XPATH,'//*[@id="panel-fenetre-bouton-fermeture"]').click()
-
+      nbTry = 100
       count = 0
       min = 100
       max = 0
       countWin = 0
       countLose =   0
       counts = [0 * i for i in range(1,21)]
-      for i in range(1):
+      for i in range(nbTry):
             print("Tour n°",i+1)
             res = game(browser)
             count += res
@@ -318,14 +359,14 @@ def main():
                         min = res
             if res > max:
                   max = res
-      print("Moyenne de tour : ",count/100)
+      print("Moyenne de tour : ",count/nbTry)
       print("Minimum de tour : ",min)
       print("Maximum de tour : ",max)
-      #print("Nombre de victoire : ",countWin)
-      #print("Nombre de défaite : ",countLose)
-      #for i in range(len(counts)):
-            #if counts[i] != 0:
-                  #print("Nombre de tour de ",i," : ",counts[i])
+      print("Nombre de victoire : ",countWin)
+      print("Nombre de défaite : ",countLose)
+      for i in range(len(counts)):
+            if counts[i] != 0:
+                  print("Nombre de tour de ",i," : ",counts[i])
 
 if __name__=="__main__":
           main()

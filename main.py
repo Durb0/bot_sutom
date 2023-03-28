@@ -33,43 +33,43 @@ word_to_find = None
 
 #fonction qui ouvre filename et crée un Word pour chaque ligne
 def get_words(filename,size_file,firstLetter_file): 
-          words = []
-          with open(filename) as f:
-                    for line in f:
-                                    #si la premiere lettre de la ligne est la meme que firstLetter_file et la taille de la ligne est egale à size_file
-                              if line[0] == firstLetter_file and len(line)-1 == size_file:
-                                        words.append(word.Word(line.strip()))
-          return words
+      words = []
+      with open(filename) as f:
+            for line in f:
+                  #si la premiere lettre de la ligne est la meme que firstLetter_file et la taille de la ligne est egale à size_file
+                  if line[0] == firstLetter_file and len(line)-1 == size_file:
+                        words.append(word.Word(line.strip()))
+      return words
 
 
 #retourne une ligne aleatoire du fichier filename
 def get_random_line(filename):
-          with open(filename) as f:
-                          lines = f.readlines()
-                          return random.choice(lines)
+      with open(filename) as f:
+            lines = f.readlines()
+            return random.choice(lines)
 
 
 #function who return longest word
 def longest_word(words:list):
-          longest = words[0]
-          for word in words:
-                    if word.getSize() > longest.getSize():
-                              longest = word
-          return longest
+      longest = words[0]
+      for word in words:
+            if word.getSize() > longest.getSize():
+                  longest = word
+      return longest
 
 
 #fonction qui cherche un mot aléatoire dans la liste words
 def random_word(words:list):
-          return random.choice(words)
+      return random.choice(words)
 
 
 #fonction qui supprime un mot de la liste words
 def delete_word(words:list,word):
       ###
       # if word in words:
-       #     if(len(words)< 100):
-        #          word.print_word()
-         #   del words[words.index(word)]
+      #     if(len(words)< 100):
+      #          word.print_word()
+      #   del words[words.index(word)]
       if word in words:
             words.remove(word)
 
@@ -78,7 +78,7 @@ def deleteAllWordsWithLetter(l:str,words:list):
       deleteList=[]
       processNo = 0
       for word in words:
-                    #if word.checkLetter(l) > -1:
+            #if word.checkLetter(l) > -1:
             for letter in word.word:
                   if letter == l:
                         deleteList.insert(0,processNo)
@@ -125,20 +125,20 @@ def deleteAllWordsWithoutLetterPosition(letter:str,words:list,pos:int):
 
 #function who delete all words with not the size s
 def deleteAllWordsWithSize(s:int,words:list):
-          for word in words:
-                    if word.getSize() != s:
-                              delete_word(words,word)
+      for word in words:
+            if word.getSize() != s:
+                  delete_word(words,word)
 
 #function who return  the word with the better percent
 def best_word(words:list):
-          if len(words) == 0:
-                    print("Aucun mot trouvé")
-                    return None
-          best = words[0]
-          for word in words:
-                    if word.getPercent() > best.getPercent():
-                              best = word
-          return best
+      if len(words) == 0:
+                  print("Aucun mot trouvé")
+                  return None
+      best = words[0]
+      for word in words:
+                  if word.getPercent() > best.getPercent():
+                        best = word
+      return best
 
 ################
 # ABOUTE LETTERS #
@@ -147,45 +147,45 @@ def best_word(words:list):
 #function who create a list of each letter of the alphabet
 # and return it
 def create_letters():
-          letters = []
-          for i in range(26):
-                    #la lettre doit être en majuscule
-                    letters.append(letter.Letter(chr(i+65)))
-          return letters 
+      letters = []
+      for i in range(26):
+                  #la lettre doit être en majuscule
+                  letters.append(letter.Letter(chr(i+65)))
+      return letters 
 
 #fonction qui applique add_letter à chaque mot
 def add_letters(words:list,letters:list):
-          for word in words:
-                    for i in range(word.getSize()):
-                              findLetter(letters,word.word[i]).add(i)
+      for word in words:
+                  for i in range(word.getSize()):
+                        findLetter(letters,word.word[i]).add(i)
 
 #fonction qui affiche toutes les lettres en format json
 def print_letters(letters:list):
-          for letter in letters:
-                    letter.print_letter()
+      for letter in letters:
+                  letter.print_letter()
 
 
 def findLetter(letters:list,c:str):
-          for letter in letters:
-                    if letter.isLetter(c):
-                              return letter
-          return None
+      for letter in letters:
+                  if letter.isLetter(c):
+                        return letter
+      return None
 
 #fonction qui cacule le pourcentage de chaque mot
 def calculate_percents(words:list,letters:list):
-          for word in words:
-                    word.calculatePercent(letters)
+      for word in words:
+                  word.calculatePercent(letters)
 
 def initiatilisationTabs(words,letters,size_file,firstLetter_file):
-          words = get_words(filename,size_file,firstLetter_file)
-          add_letters(words,letters)
-          for letter in letters:
-                #si la lettre est une voyelle
-                  if letter.isVowel():
-                        #on applique la fonction addPositionsPercent
-                        letter.addPositionsPercent()
-          calculate_percents(words,letters)
-          return words
+      words = get_words(filename,size_file,firstLetter_file)
+      add_letters(words,letters)
+      for letter in letters:
+            #si la lettre est une voyelle
+            if letter.isVowel():
+                  #on applique la fonction addPositionsPercent
+                  letter.addPositionsPercent()
+      calculate_percents(words,letters)
+      return words
 
 
 #fonction qui genere le masque de la recherche
@@ -213,7 +213,8 @@ def getMask(word,word_to_find):
 def getMaskWeb(browser,size,line):
       mask=[]
       for letter in range(size):
-            anal = browser.find_element_by_xpath('//*[@id="grille"]/table/tr['+ str(line) +']/td['+str(letter+1) +']')
+            #anal = browser.find_element_by_xpath('//*[@id="grille"]/table/tr['+ str(line) +']/td['+str(letter+1) +']')
+            anal = browser.find_element(By.XPATH, '//*[@id="grille"]/table/tr['+ str(line) +']/td['+str(letter+1) +']')
             classes = anal.get_attribute("class").split(" ")
             if classes[0] == 'bien-place':
                   mask.append('V')
@@ -224,10 +225,10 @@ def getMaskWeb(browser,size,line):
       return mask
 
 def checkMask(mask):
-          for i in mask:
-                    if i != "V":
-                              return False
-          return True
+      for i in mask:
+            if i != "V":
+                  return False
+      return True
 
 def filter_words(words,mask,best):
       print(best.word)
@@ -261,8 +262,9 @@ def ecritMot(browser,word,letters):
       for i in word.word:
             #recupère la lettre
             letter = findLetter(letters,i)
-            browser.find_element_by_xpath('//*[@id="input-area"]/div['+ str(letter.row) +']/div['+ str(letter.column)+']').click()
-      browser.find_element_by_xpath('//*[@id="input-area"]/div[3]/div[9]').click()
+            #browser.find_element_by_xpath('//*[@id="input-area"]/div['+ str(letter.row) +']/div['+ str(letter.column)+']').click()
+            browser.find_element(By.XPATH,'//*[@id="input-area"]/div['+ str(letter.row) +']/div['+ str(letter.column)+']').click()
+      browser.find_element(By.XPATH,'//*[@id="input-area"]/div[3]/div[10]').click()
       time.sleep(3)
 
 def find_word(words,word_to_find):
@@ -369,5 +371,5 @@ def main():
                   print("Nombre de tour de ",i," : ",counts[i])
 
 if __name__=="__main__":
-          main()
+      main()
 
